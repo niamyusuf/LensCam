@@ -3,6 +3,8 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
@@ -27,6 +29,8 @@ class _KameraState extends State<Kamera> {
   late GoogleMapController mapController;
   late Position position;
   late bool kameradepan = false;
+  bool showTimer = false;
+  int nilai = 10;
 
   late String alamat1 = '';
   late String alamat2 = '';
@@ -42,6 +46,34 @@ class _KameraState extends State<Kamera> {
   XFile? pictureFile;
   final GlobalKey _globalKey = GlobalKey();
   late LatLng _currentPosition = LatLng(0, 0);
+
+  StreamSubscription? internetconnection;
+  bool isoffline = false;
+
+  cekKonesiInternet() {
+    internetconnection = Connectivity()
+        .onConnectivityChanged
+        .listen((ConnectivityResult result) {
+      // whenevery connection status is changed.
+      if (result == ConnectivityResult.none) {
+        //there is no any connection
+        setState(() {
+          isoffline = true;
+        });
+      } else if (result == ConnectivityResult.mobile) {
+        //connection is mobile data network
+        setState(() {
+          isoffline = false;
+        });
+      } else if (result == ConnectivityResult.wifi) {
+        //connection is from wifi
+        setState(() {
+          isoffline = false;
+        });
+      }
+      print("Koneksi " + isoffline.toString());
+    });
+  }
 
   @override
   void initState() {
@@ -80,21 +112,24 @@ class _KameraState extends State<Kamera> {
     //   if (!mounted) {
     //     return;
     //   }
-    //   setState(() {
-    //     _handleLocationPermission();
-    //     _getTime();
-    //   });
+    setState(() {
+      _handleLocationPermission();
+      _getTime();
+      cekKonesiInternet();
+    });
     // });
   }
 
   @override
   void dispose() {
     ccontroller.dispose();
+    showTimer = false;
+    internetconnection!.cancel();
     super.dispose();
   }
 
-  _switchKamera(){
-    if(kameradepan == false){
+  _switchKamera() {
+    if (kameradepan == false) {
       kameradepan = true;
       ccontroller = CameraController(
         const CameraDescription(
@@ -105,7 +140,7 @@ class _KameraState extends State<Kamera> {
         ResolutionPreset.max,
         enableAudio: false,
       );
-    }else{
+    } else {
       kameradepan = false;
       ccontroller = CameraController(
         const CameraDescription(
@@ -117,7 +152,6 @@ class _KameraState extends State<Kamera> {
         enableAudio: false,
       );
     }
-    
 
     ccontroller.setFlashMode(FlashMode.off); // flash off
     // controller.setFlashMode(FlashMode.always); // flash on
@@ -125,10 +159,10 @@ class _KameraState extends State<Kamera> {
     ccontroller.initialize().then((_) {
       if (!mounted) {
         return;
-      }  
+      }
     });
   }
-  
+
   _saveLocalImage() async {
     RenderRepaintBoundary boundary =
         _globalKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
@@ -171,6 +205,7 @@ class _KameraState extends State<Kamera> {
   _getAddressFromLatLng() async {
     // LocationPermission permission;
     // permission = await Geolocator.requestPermission();
+    _handleLocationPermission();
 
     Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high);
@@ -221,6 +256,27 @@ class _KameraState extends State<Kamera> {
       if (_kosong == false) {
         _getAddressFromLatLng();
       }
+
+      if (showTimer == true) {
+        nilai = nilai - 1;
+        if (nilai == 0) {
+          showTimer = false;
+          nilai = -1;
+        }
+      }else{
+        if (showTimer == false && nilai == -1) {
+          _saveLocalImage();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Tersimpan"),
+              backgroundColor: Colors.green,
+            ),
+          );
+          nilai=10;
+        }
+      }
+
+      
       // print("JAM :" + _timeString);
     });
   }
@@ -266,6 +322,28 @@ class _KameraState extends State<Kamera> {
     return true;
   }
 
+  Widget errmsg(String text, bool show) {
+    //error message widget.
+    if (show == true) {
+      //if error is true then show error message box
+      return Container(
+        padding: EdgeInsets.all(10.00),
+        margin: EdgeInsets.only(bottom: 10.00),
+        color: Colors.red,
+        child: Row(children: [
+          Container(
+            margin: EdgeInsets.only(right: 6.00),
+            child: Icon(Icons.info, color: Colors.white),
+          ), // icon for error message
+
+          Text(text, style: TextStyle(color: Colors.white)),
+        ]),
+      );
+    } else {
+      return Container();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!ccontroller.value.isInitialized) {
@@ -301,6 +379,43 @@ class _KameraState extends State<Kamera> {
                     width: MediaQuery.of(context).size.width,
                     child: CameraPreview(ccontroller),
                   ),
+                  Container(
+                    child: errmsg("Tidak ada internet", isoffline),
+                    //to show internet connection message on isoffline = true.
+                  ),
+                  showTimer == false
+                      ? Container()
+                      : Positioned(
+                          left: 0,
+                          bottom: 300,
+                          child: Row(
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Container(
+                                  width: MediaQuery.of(context).size.width - 15,
+                                  decoration: BoxDecoration(
+                                    color: Colors.transparent.withOpacity(0),
+                                    // color: Colors.grey,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Center(
+                                      child: Text(
+                                        nilai.toString(),
+                                        style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 45),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                   Positioned(
                     left: 0,
                     bottom: 0,
@@ -398,43 +513,73 @@ class _KameraState extends State<Kamera> {
             ),
           ),
 
-          
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              ElevatedButton(
-                style: ButtonStyle(
-                  backgroundColor: MaterialStatePropertyAll(Colors.blue),
-                  
-                ),
-                onPressed: (){
-                          _switchKamera();
-                        }, child: Icon(Icons.cameraswitch, color: Colors.white,),),
-              SizedBox(width: 10,),
-              ElevatedButton(
-                onPressed: () async {
-                  // pictureFile = await ccontroller.takePicture();
-                  // final docDir = await getExternalStorageDirectory();
-                  // final path = docDir!.path + "/${pictureFile!.name}";
-                  // print(("$path/${pictureFile!.name}"));
-              
-                  _saveLocalImage();
-                  // captureImage();
-                  // ignore: use_build_context_synchronously
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text("Tersimpan"),
-                      backgroundColor: Colors.green,
+          Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                MaterialButton(
+                  color: Colors.blue,
+                  shape: const CircleBorder(),
+                  onPressed: () {
+                    _switchKamera();
+                  },
+                  child: const Padding(
+                    padding: EdgeInsets.all(10),
+                    child: Icon(
+                      Icons.cameraswitch,
+                      color: Colors.white,
                     ),
-                  );
-                  setState(() {});
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
+                  ),
                 ),
-                child: Icon(Icons.camera_alt_outlined, color: Colors.white,),
-              ),
-            ],
+                SizedBox(
+                  width: 30,
+                ),
+                MaterialButton(
+                  color: Colors.blue,
+                  shape: const CircleBorder(),
+                  onPressed: () {
+                    _saveLocalImage();
+                    // captureImage();
+                    // ignore: use_build_context_synchronously
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Tersimpan"),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                    setState(() {});
+                  },
+                  child: const Padding(
+                    padding: EdgeInsets.all(10),
+                    child: Icon(
+                      Icons.camera_alt_outlined,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: 30,
+                ),
+                MaterialButton(
+                  color: Colors.blue,
+                  shape: const CircleBorder(),
+                  onPressed: () {
+                    setState(() {
+                      showTimer = true;
+                      nilai = 10;
+                    });
+                  },
+                  child: const Padding(
+                    padding: EdgeInsets.all(10),
+                    child: Icon(
+                      Icons.timer_10_rounded,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
           // if (pictureFile != null)
           //   Image.file(

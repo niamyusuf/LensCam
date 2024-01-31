@@ -20,7 +20,8 @@ class _SplashScreenState extends State<SplashScreen> {
       asyncNavigationCallback: () async {
         await Future.delayed(const Duration(seconds: 3));
         if (context.mounted) {
-          Navigator.of(context).pushReplacementNamed('/kamera');
+          // Navigator.of(context).pushReplacementNamed('/kamera');
+          Navigator.of(context).pushNamedAndRemoveUntil('/kamera', (route) => false);
           // return const Kamera();
           // GoRouter.of(context).goNamed("home");
           // context.goNamed('home');

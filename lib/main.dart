@@ -19,12 +19,7 @@ class MyApp extends StatelessWidget {
         "/": (ctx) => const SplashScreen(),
         "/kamera": (ctx) => const Kamera(),
       },
-      // title: 'Flutter Demo',
-      // theme: ThemeData(
-      //   colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      //   useMaterial3: true,
-      // ),
-      // home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      
     );
   }
 }
