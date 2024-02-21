@@ -1,6 +1,4 @@
 import 'dart:async';
-// import 'dart:html';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -309,10 +307,12 @@ class _KameraState extends State<Kamera> {
         // ignore: use_build_context_synchronously
         ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Location permissions are denied')));
+        permission = await Geolocator.requestPermission();
         return false;
       }
     }
     if (permission == LocationPermission.deniedForever) {
+      permission = await Geolocator.requestPermission();
       // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text(
@@ -375,7 +375,7 @@ class _KameraState extends State<Kamera> {
               child: Stack(
                 children: [
                   SizedBox(
-                    height: MediaQuery.of(context).size.height * .8,
+                    height: MediaQuery.of(context).size.height*.823,
                     width: MediaQuery.of(context).size.width,
                     child: CameraPreview(ccontroller),
                   ),
@@ -418,7 +418,7 @@ class _KameraState extends State<Kamera> {
                         ),
                   Positioned(
                     left: 0,
-                    bottom: 0,
+                    bottom: 30,
                     child: Row(
                       children: [
                         Padding(
@@ -512,75 +512,76 @@ class _KameraState extends State<Kamera> {
               ),
             ),
           ),
-
-          Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                MaterialButton(
-                  color: Colors.blue,
-                  shape: const CircleBorder(),
-                  onPressed: () {
-                    _switchKamera();
-                  },
-                  child: const Padding(
-                    padding: EdgeInsets.all(10),
-                    child: Icon(
-                      Icons.cameraswitch,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-                SizedBox(
-                  width: 30,
-                ),
-                MaterialButton(
-                  color: Colors.blue,
-                  shape: const CircleBorder(),
-                  onPressed: () {
-                    _saveLocalImage();
-                    // captureImage();
-                    // ignore: use_build_context_synchronously
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("Tersimpan"),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                    setState(() {});
-                  },
-                  child: const Padding(
-                    padding: EdgeInsets.all(10),
-                    child: Icon(
-                      Icons.camera_alt_outlined,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-                SizedBox(
-                  width: 30,
-                ),
-                MaterialButton(
-                  color: Colors.blue,
-                  shape: const CircleBorder(),
-                  onPressed: () {
-                    setState(() {
-                      showTimer = true;
-                      nilai = 10;
-                    });
-                  },
-                  child: const Padding(
-                    padding: EdgeInsets.all(10),
-                    child: Icon(
-                      Icons.timer_10_rounded,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+      
+          // Padding(
+          //   padding: const EdgeInsets.all(12.0),
+          //   child: Row(
+          //     mainAxisAlignment: MainAxisAlignment.center,
+          //     children: [
+          //       MaterialButton(
+          //         color: Colors.blue,
+          //         shape: const CircleBorder(),
+          //         onPressed: () {
+          //           _switchKamera();
+          //         },
+          //         child: const Padding(
+          //           padding: EdgeInsets.all(10),
+          //           child: Icon(
+          //             Icons.cameraswitch,
+          //             color: Colors.white,
+          //           ),
+          //         ),
+          //       ),
+          //       SizedBox(
+          //         width: 30,
+          //       ),
+          //       MaterialButton(
+          //         color: Colors.blue,
+          //         shape: const CircleBorder(),
+          //         onPressed: () {
+          //           _saveLocalImage();
+          //           // captureImage();
+          //           // ignore: use_build_context_synchronously
+          //           ScaffoldMessenger.of(context).showSnackBar(
+          //             const SnackBar(
+          //               content: Text("Tersimpan"),
+          //               backgroundColor: Colors.green,
+          //             ),
+          //           );
+          //           setState(() {});
+          //         },
+          //         child: const Padding(
+          //           padding: EdgeInsets.all(10),
+          //           child: Icon(
+          //             Icons.camera_alt_outlined,
+          //             color: Colors.white,
+          //           ),
+          //         ),
+          //       ),
+          //       SizedBox(
+          //         width: 30,
+          //       ),
+          //       MaterialButton(
+          //         color: Colors.blue,
+          //         shape: const CircleBorder(),
+          //         onPressed: () {
+          //           setState(() {
+          //             showTimer = true;
+          //             nilai = 10;
+          //           });
+          //         },
+          //         child: const Padding(
+          //           padding: EdgeInsets.all(10),
+          //           child: Icon(
+          //             Icons.timer_10_rounded,
+          //             color: Colors.white,
+          //           ),
+          //         ),
+          //       ),
+          //     ],
+          //   ),
+          // ),
+      
           // if (pictureFile != null)
           //   Image.file(
           //     File(pictureFile!.path),
@@ -588,35 +589,50 @@ class _KameraState extends State<Kamera> {
           //   ),
         ],
       ),
-      // floatingActionButton: Column(
-      //   crossAxisAlignment: CrossAxisAlignment.end,
-      //   mainAxisAlignment: MainAxisAlignment.end,
-      //   children: [
-      //     FloatingActionButton(
-      //       onPressed: () async {
-      //         pictureFile = await controller.takePicture();
-      //         final docDir = await getExternalStorageDirectory();
-      //         final path = docDir!.path + "/${pictureFile!.name}";
-      //         // pictureFile!.saveTo("$path/${pictureFile!.name}");
-      //         print(("$path/${pictureFile!.name}"));
-      //         _saveLocalImage();
-      //         // ignore: use_build_context_synchronously
-      //         ScaffoldMessenger.of(context).showSnackBar(
-      //           const SnackBar(content: Text("Tersimpan")),
-      //         );
-      //         setState(() {});
-      //       },
-      //       child: const Icon(Icons.camera_alt),
-      //     ),
-      //     // FloatingActionButton(
-      //     //   onPressed: () {
-      //     //     _getAddressFromLatLng();
-      //     //     print("LOKASI");
-      //     //   },
-      //     //   child: const Icon(Icons.my_location),
-      //     // ),
-      //   ],
-      // ),
+      // floatingActionButton
+      floatingActionButton:FloatingActionButton( //Floating action button on Scaffold
+        backgroundColor: Colors.blue,
+        
+          onPressed: (){
+              _saveLocalImage();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("Tersimpan"),
+                  backgroundColor: Colors.green,
+                ),
+              );
+          //           setState(() {});
+          },
+          child: Icon(Icons.camera_alt, color: Colors.white,), //icon inside button
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+  //floating action button location to left
+
+      bottomNavigationBar: BottomAppBar( //bottom navigation bar on scaffold
+      height: 55,
+        color:Colors.blue,
+        shape: CircularNotchedRectangle(), //shape of notch
+        notchMargin: 8, //notche margin between floating button and bottom appbar
+        child: Row( //children inside bottom appbar
+          mainAxisSize: MainAxisSize.max,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: <Widget>[
+            // Padding(
+            //   padding: EdgeInsets.only(left:90),
+            //   child:IconButton(icon: Icon(Icons.menu, color: Colors.blue,), onPressed: () {},),
+            // ),
+            IconButton(icon: Icon(Icons.cameraswitch, color: Colors.white,), onPressed: () {
+              _switchKamera();
+            },),
+            IconButton(icon: Icon(Icons.timer_10_rounded, color: Colors.white,), onPressed: () {
+              setState(() {
+                showTimer = true;
+                nilai = 10;
+              });
+            },),
+          ],
+        ),
+      ),
     );
   }
 }
