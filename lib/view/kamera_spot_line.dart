@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
@@ -12,6 +13,9 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import 'package:image_gallery_saver/image_gallery_saver.dart';
+import 'dart:developer' as developer;
+// import 'package:new_app_version_alert/new_app_version_alert.dart';
+import 'package:new_version_plus/new_version_plus.dart';
 // import 'package:gallery_saver/gallery_saver.dart';
 
 class Kamera extends StatefulWidget {
@@ -48,29 +52,71 @@ class _KameraState extends State<Kamera> {
   StreamSubscription? internetconnection;
   bool isoffline = false;
 
-  cekKonesiInternet() {
-    internetconnection = Connectivity()
-        .onConnectivityChanged
-        .listen((ConnectivityResult result) {
-      // whenevery connection status is changed.
-      if (result == ConnectivityResult.none) {
-        //there is no any connection
-        setState(() {
-          isoffline = true;
-        });
-      } else if (result == ConnectivityResult.mobile) {
-        //connection is mobile data network
-        setState(() {
-          isoffline = false;
-        });
-      } else if (result == ConnectivityResult.wifi) {
-        //connection is from wifi
-        setState(() {
-          isoffline = false;
-        });
-      }
-      print("Koneksi " + isoffline.toString());
+  final newVersion = NewVersionPlus(
+    iOSId: 'com.lenscam.apps',
+    androidId: 'com.lenscam.apps',
+  );
+
+  List<ConnectivityResult> _connectionStatus = [ConnectivityResult.none];
+  final Connectivity _connectivity = Connectivity();
+  late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
+
+  Future<void> initConnectivity() async {
+    late List<ConnectivityResult> result;
+    // Platform messages may fail, so we use a try/catch PlatformException.
+    try {
+      result = await _connectivity.checkConnectivity();
+    } on PlatformException catch (e) {
+      developer.log('Couldn\'t check connectivity status', error: e);
+      return;
+    }
+
+    // If the widget was removed from the tree while the asynchronous platform
+    // message was in flight, we want to discard the reply rather than calling
+    // setState to update our non-existent appearance.
+    if (!mounted) {
+      return Future.value(null);
+    }
+
+    return _updateConnectionStatus(result);
+  }
+
+  Future<void> _updateConnectionStatus(List<ConnectivityResult> result) async {
+    setState(() {
+      _connectionStatus = result;
     });
+    // ignore: avoid_print
+    print('Connectivity changed: $_connectionStatus');
+  }
+
+  advancedStatusCheck(NewVersionPlus newVersion) async {
+    final status = await newVersion.getVersionStatus();
+    debugPrint("Cek Version");
+    debugPrint("HASILSTS : " + status!.localVersion.toString());
+
+    if (status != null) {
+      debugPrint(status.releaseNotes);
+      debugPrint(status.appStoreLink);
+      debugPrint(status.localVersion);
+      debugPrint(status.storeVersion);
+      debugPrint(status.canUpdate.toString());
+
+      // if (status.canUpdate == true) {
+      //   newVersion.showUpdateDialog(
+      //     context: context,
+      //     versionStatus: status,
+      //     dialogTitle: 'Tersedia Pembaharuan!',
+      //     dialogText: 'update to version : ${status.storeVersion}',
+      //     launchModeVersion: LaunchModeVersion.external,
+      //     allowDismissal: false,
+      //   );
+      // }
+    }
+
+    newVersion.showAlertIfNecessary(
+      context: context,
+      launchModeVersion: LaunchModeVersion.external,
+    );
   }
 
   @override
@@ -89,6 +135,9 @@ class _KameraState extends State<Kamera> {
     } else {
       _getAddressFromLatLng();
     }
+
+    // NewVersionCheck.newVersionCheck(
+    //     context, "com.lenscam.apps", "com.lenscam.apps");
 
     super.initState();
     // ccontroller = CameraController(
@@ -113,7 +162,10 @@ class _KameraState extends State<Kamera> {
     setState(() {
       _handleLocationPermission();
       _getTime();
-      cekKonesiInternet();
+      advancedStatusCheck(newVersion);
+      initConnectivity();
+      _connectivitySubscription =
+        _connectivity.onConnectivityChanged.listen(_updateConnectionStatus);
     });
     // });
   }
@@ -122,7 +174,7 @@ class _KameraState extends State<Kamera> {
   void dispose() {
     ccontroller.dispose();
     showTimer = false;
-    internetconnection!.cancel();
+    _connectivitySubscription.cancel();
     super.dispose();
   }
 
@@ -261,7 +313,7 @@ class _KameraState extends State<Kamera> {
           showTimer = false;
           nilai = -1;
         }
-      }else{
+      } else {
         if (showTimer == false && nilai == -1) {
           _saveLocalImage();
           ScaffoldMessenger.of(context).showSnackBar(
@@ -270,11 +322,10 @@ class _KameraState extends State<Kamera> {
               backgroundColor: Colors.green,
             ),
           );
-          nilai=10;
+          nilai = 10;
         }
       }
 
-      
       // print("JAM :" + _timeString);
     });
   }
@@ -362,6 +413,7 @@ class _KameraState extends State<Kamera> {
               onPressed: () {
                 _getAddressFromLatLng();
                 _onMapCreated;
+                advancedStatusCheck(newVersion);
               },
               icon: const Icon(Icons.my_location))
         ],
@@ -375,7 +427,7 @@ class _KameraState extends State<Kamera> {
               child: Stack(
                 children: [
                   SizedBox(
-                    height: MediaQuery.of(context).size.height*.823,
+                    height: MediaQuery.of(context).size.height * .823,
                     width: MediaQuery.of(context).size.width,
                     child: CameraPreview(ccontroller),
                   ),
@@ -458,16 +510,19 @@ class _KameraState extends State<Kamera> {
                                       ),
                                       Text(
                                         alamat1,
+                                        overflow: TextOverflow.fade,
                                         style: const TextStyle(
                                             color: Colors.white),
                                       ),
                                       Text(
                                         alamat2,
+                                        overflow: TextOverflow.fade,
                                         style: const TextStyle(
                                             color: Colors.white),
                                       ),
                                       Text(
                                         alamat3,
+                                        overflow: TextOverflow.fade,
                                         style: const TextStyle(
                                             color: Colors.white),
                                       ),
@@ -512,7 +567,7 @@ class _KameraState extends State<Kamera> {
               ),
             ),
           ),
-      
+
           // Padding(
           //   padding: const EdgeInsets.all(12.0),
           //   child: Row(
@@ -581,7 +636,7 @@ class _KameraState extends State<Kamera> {
           //     ],
           //   ),
           // ),
-      
+
           // if (pictureFile != null)
           //   Image.file(
           //     File(pictureFile!.path),
@@ -590,30 +645,40 @@ class _KameraState extends State<Kamera> {
         ],
       ),
       // floatingActionButton
-      floatingActionButton:FloatingActionButton( //Floating action button on Scaffold
+      floatingActionButton: FloatingActionButton(
+        //Floating action button on Scaffold
         backgroundColor: Colors.blue,
-        
-          onPressed: (){
-              _saveLocalImage();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("Tersimpan"),
-                  backgroundColor: Colors.green,
-                ),
-              );
+
+        onPressed: () {
+          _saveLocalImage();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Tersimpan"),
+              backgroundColor: Colors.green,
+            ),
+          );
           //           setState(() {});
-          },
-          child: Icon(Icons.camera_alt, color: Colors.white,), //icon inside button
+        },
+        child: Icon(
+          Icons.camera_alt,
+          color: Colors.white,
+        ), //icon inside button
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-  //floating action button location to left
+      //floating action button location to left
 
-      bottomNavigationBar: BottomAppBar( //bottom navigation bar on scaffold
-      height: 55,
-        color:Colors.blue,
+      
+      
+
+      bottomNavigationBar: BottomAppBar(
+        //bottom navigation bar on scaffold
+        height: 55,
+        color: Colors.blue,
         shape: CircularNotchedRectangle(), //shape of notch
-        notchMargin: 8, //notche margin between floating button and bottom appbar
-        child: Row( //children inside bottom appbar
+        notchMargin:
+            8, //notche margin between floating button and bottom appbar
+        child: Row(
+          //children inside bottom appbar
           mainAxisSize: MainAxisSize.max,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: <Widget>[
@@ -621,15 +686,27 @@ class _KameraState extends State<Kamera> {
             //   padding: EdgeInsets.only(left:90),
             //   child:IconButton(icon: Icon(Icons.menu, color: Colors.blue,), onPressed: () {},),
             // ),
-            IconButton(icon: Icon(Icons.cameraswitch, color: Colors.white,), onPressed: () {
-              _switchKamera();
-            },),
-            IconButton(icon: Icon(Icons.timer_10_rounded, color: Colors.white,), onPressed: () {
-              setState(() {
-                showTimer = true;
-                nilai = 10;
-              });
-            },),
+            IconButton(
+              icon: Icon(
+                Icons.cameraswitch,
+                color: Colors.white,
+              ),
+              onPressed: () {
+                _switchKamera();
+              },
+            ),
+            IconButton(
+              icon: Icon(
+                Icons.timer_10_rounded,
+                color: Colors.white,
+              ),
+              onPressed: () {
+                setState(() {
+                  showTimer = true;
+                  nilai = 10;
+                });
+              },
+            ),
           ],
         ),
       ),
